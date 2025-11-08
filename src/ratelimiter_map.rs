@@ -1,17 +1,15 @@
 use crate::expiring_lru::{Builder, ExpiringLru};
 use tokio::time::Duration;
-use twilight_http_ratelimiting::InMemoryRatelimiter;
-
-use crate::parse_env;
+use twilight_http_ratelimiting::RateLimiter;
 
 pub struct RatelimiterMap {
-    default: InMemoryRatelimiter,
+    default: RateLimiter,
     default_token: String,
-    inner: ExpiringLru<String, InMemoryRatelimiter>,
+    inner: ExpiringLru<String, RateLimiter>,
 }
 
 impl RatelimiterMap {
-    pub fn new(mut default_token: String) -> Self {
+    pub fn new(mut default_token: String, timeout: Duration, max_size: Option<usize>) -> Self {
         let is_bot = default_token.starts_with("Bot ");
         let is_bearer = default_token.starts_with("Bearer ");
 
@@ -21,17 +19,15 @@ impl RatelimiterMap {
             default_token.insert_str(0, "Bot ");
         }
 
-        let expiration = Duration::from_secs(parse_env("CLIENT_DECAY_TIMEOUT").unwrap_or(3600));
+        let mut builder = Builder::new().expiration(timeout);
 
-        let mut builder = Builder::new().expiration(expiration);
-
-        if let Some(max_size) = parse_env("CLIENT_CACHE_MAX_SIZE") {
+        if let Some(max_size) = max_size {
             builder = builder.max_size(max_size);
         }
 
         let inner = builder.build();
 
-        let default = InMemoryRatelimiter::new();
+        let default = RateLimiter::default();
 
         Self {
             default,
@@ -40,14 +36,14 @@ impl RatelimiterMap {
         }
     }
 
-    pub fn get_or_insert(&self, token: Option<&str>) -> (InMemoryRatelimiter, String) {
+    pub fn get_or_insert(&self, token: Option<&str>) -> (RateLimiter, String) {
         if let Some(token) = token {
             if token == self.default_token {
                 (self.default.clone(), self.default_token.clone())
             } else if let Some(entry) = self.inner.get(token) {
                 (entry.value().clone(), token.to_string())
             } else {
-                let ratelimiter = InMemoryRatelimiter::new();
+                let ratelimiter = RateLimiter::default();
 
                 self.inner.insert(token.to_string(), ratelimiter.clone());
 

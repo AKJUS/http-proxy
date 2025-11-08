@@ -115,11 +115,10 @@ setting `DISABLE_HTTP2` to any value when running the proxy.
 
 ## Prometheus metrics
 
-The HTTP proxy can expose prometheus metrics when compiled with the
-`expose-metrics` feature. These metrics are then available on the `/metrics`
-endpoint.
-You can set the metrics key used for the histogram data by setting the
-`METRIC_KEY` environment variable.
+The HTTP proxy can expose prometheus metrics when compiled with the `metrics`
+feature. These metrics are then available on the `/metrics` endpoint. You can
+set the metrics key used for the histogram data by setting the `METRIC_KEY`
+environment variable.
 
 The exported histogram includes timing percentiles, response status codes,
 request path and request method. Calls to the metrics endpoint itself are not
@@ -131,10 +130,8 @@ If processing an incoming request fails, the proxy will respond with a 5xx
 status code and a helpful error message in the response body. Currently, these
 status codes include:
 
-- `500` if the proxy generates an invalid URI or the ratelimiter fails
-  internally
-- `501` if the client requested an unsupported API path or used an unsupported
-  HTTP method
+- `500` if the proxy encountered an internal error
+- `501` if the client requested an unsupported API endpoint
 - `502` if the request made by the proxy fails
 
 [twilight]: https://github.com/twilight-rs/twilight
