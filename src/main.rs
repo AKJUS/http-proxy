@@ -10,10 +10,9 @@ use hyper::{
     body::{Bytes, Incoming},
     service,
 };
-use hyper_hickory::{TokioHickoryHttpConnector, TokioHickoryResolver};
 use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use hyper_util::{
-    client::legacy::Client,
+    client::legacy::{Client, connect::HttpConnector},
     rt::{TokioExecutor, TokioIo},
     server::conn::auto::Builder,
 };
@@ -57,7 +56,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
     let client = {
-        let mut http_connector = TokioHickoryResolver::default().into_http_connector();
+        let mut http_connector = HttpConnector::new();
         http_connector.enforce_http(false);
 
         let builder = HttpsConnectorBuilder::new()
@@ -183,7 +182,7 @@ async fn shutdown_signal() {
 }
 
 async fn handle_request(
-    client: Client<HttpsConnector<TokioHickoryHttpConnector>, Incoming>,
+    client: Client<HttpsConnector<HttpConnector>, Incoming>,
     ratelimiter: RateLimiter,
     token: String,
     mut request: Request<Incoming>,
